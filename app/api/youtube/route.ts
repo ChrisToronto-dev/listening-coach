@@ -3,6 +3,8 @@ import { loadLearner, saveLearner } from '@/lib/learner-store';
 import { attemptKey, sentenceAttemptKey, parseYouTubeUrl, parseTranscript, videoView, validRange } from '@/lib/youtube';
 import { groupSentenceCues } from '@/lib/sentence-cues';
 import { score } from '@/lib/core';
+
+export const dynamic = 'force-dynamic';
 const input=z.discriminatedUnion('action',[
  z.object({action:z.literal('add'),url:z.string().max(2000),title:z.string().trim().min(1).max(160)}),
  z.object({action:z.literal('transcript'),id:z.string(),transcript:z.string().max(500000),rightsBasis:z.string().trim().min(5).max(1000),confirmed:z.literal(true),captionSource:z.enum(['youtube-auto','youtube-captions']).optional()}),

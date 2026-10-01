@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { loadLearner, saveLearner } from '@/lib/learner-store';
 import { validRange } from '@/lib/youtube';
+
+export const dynamic = 'force-dynamic';
 const clip = z.object({ watchId: z.string().regex(/^\d{1,20}$/), title: z.string().trim().min(1).max(200), start: z.number(), end: z.number(), notes: z.string().max(20000) });
 function failure(error: unknown) {
   const message = error instanceof Error ? error.message : 'Could not save.';

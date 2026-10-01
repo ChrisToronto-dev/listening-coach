@@ -2,6 +2,8 @@ import { z } from 'zod';
 import { loadLearner, saveLearner } from '@/lib/learner-store';
 import { localDate } from '@/lib/core';
 
+export const dynamic = 'force-dynamic';
+
 const input=z.object({source:z.enum(['youtube','netflix']),seconds:z.number().int().min(1).max(60)});
 function failure(error:unknown){
  const message=error instanceof Error?error.message:'Could not save practice time.';
