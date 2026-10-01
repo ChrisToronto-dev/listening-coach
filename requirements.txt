@@ -1,1 +1,1 @@
--r scripts/requirements-captions.txt
+yt-dlp[default]==2026.8.19
