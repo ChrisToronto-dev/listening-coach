@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 const origin='http://127.0.0.1:5173';
 const login=await fetch(origin+'/signin-with-chatgpt?return_to=/',{redirect:'manual'});
 const cookie=login.headers.getSetCookie().map(x=>x.split(';')[0]).join('; ');
-async function call(headers,body){return fetch(origin+'/api/local-captions',{method:'POST',headers:{'Content-Type':'application/json',...headers},body:JSON.stringify(body)});}
+async function call(headers,body){return fetch(origin+'/api/youtube/captions',{method:'POST',headers:{'Content-Type':'application/json',...headers},body:JSON.stringify(body)});}
 assert.equal((await call({cookie},{id:'anything'})).status,403);
 assert.equal((await call({cookie,origin:'https://example.com'},{id:'anything'})).status,403);
 assert.equal((await call({origin},{id:'anything'})).status,401);

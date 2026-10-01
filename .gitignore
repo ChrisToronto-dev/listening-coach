@@ -49,3 +49,5 @@ next-env.d.ts
 /.venv/
 /.local-captions/
 .data/
+__pycache__/
+*.pyc

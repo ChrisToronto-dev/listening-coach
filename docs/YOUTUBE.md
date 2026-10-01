@@ -1,4 +1,12 @@
-# 로컬 YouTube 학습
+# YouTube 학습
+
+## Vercel 배포
+
+자막 버튼은 Next.js API `/api/youtube/captions`를 호출합니다. Vercel에서는 별도 Python 함수 `api/youtube-captions.py`가 yt-dlp로 공개 영어 자막만 가져옵니다. 프로젝트 루트의 `requirements.txt`로 Python 의존성을 설치하고 `vercel.json`으로 함수 제한 시간을 설정합니다. 로컬 `.venv`를 업로드할 필요는 없습니다. Next.js 프로젝트 설정과 `npm run build`는 유지하세요.
+
+`APP_PASSWORD` 및 `APP_SECRET`은 같은 Vercel 프로젝트 환경 변수로 설정합니다. 자막 Python 함수도 기존 `lc_session` 로그인 쿠키를 검증합니다. Next.js API는 본인 영상인지 확인하고 기존 자막을 덮어쓰지 않으며, 가져오는 동안 학습 기록이 변경되면 충돌을 반환합니다.
+
+YouTube가 서버 IP에 요청 제한이나 로그인 확인을 요구하는 경우 자동 가져오기는 실패할 수 있습니다. 오류 메시지에서 원인을 확인하고 자막 버튼 옆 **Upload VTT / SRT**로 파일을 올릴 수 있습니다. 실제 Vercel 네트워크에서의 가져오기 성공은 재배포 후 확인해야 합니다.
 
 ## 사용
 
@@ -25,13 +33,15 @@ npm run captions:setup
 npm run dev -- --hostname 127.0.0.1
 ```
 
-`.venv/`와 `.local-captions/`는 Git에서 제외합니다. 자막 도구는 Vite 개발 서버에만 연결되며 `npm start`의 빌드 미리보기에서는 제공하지 않습니다. 온라인 배포는 사용하지 않습니다.
+`.venv/`와 `.local-captions/`는 Git에서 제외합니다. Next.js 개발 서버도 설치된 로컬 자막 도구를 사용합니다. Vite 개발 서버는 기존 로컬 전용 미들웨어를 사용합니다. Vercel의 프로덕션에서는 별도 Python 함수를 사용합니다.
 
-로컬 자막 엔드포인트 `/api/local-captions`는 루프백 연결·호스트·동일 Origin·로컬 계정·영상 소유권을 확인합니다. 명령은 쉘을 거치지 않으며 유효한 11자리 영상 ID만 전달합니다. 동시 실행은 1개, 제한 시간은 90초입니다.
+Vite 로컬 자막 엔드포인트 `/api/youtube/captions`는 루프백 연결·호스트·동일 Origin·로컬 계정·영상 소유권을 확인합니다. 명령은 쉘을 거치지 않으며 유효한 11자리 영상 ID만 전달합니다. Vite에서는 동시 실행 1개·90초, Next.js 로컬에서는 45초 제한입니다.
 
 ## 검증
 
 - `npm test`: URL 파싱, VTT/SRT 시간 검증, 자막 중복 정리, 시분초 변환, 답변 비공개/공개, 반복 경계, 기존 채점/복습.
+- `PYTHONPATH=. .venv/bin/python tests/python-captions.test.py`: Python 함수의 로그인 만료·변조·Origin·영상 ID 검사. 외부 다운로드 없이 검증합니다.
+- `node --experimental-strip-types tests/caption-function-smoke.mjs`: 실제 공개 YouTube 자막을 Python 함수로 가져와 정리합니다. 학습 기록은 쓰지 않습니다. 로컬 테스트에서 247개 영어 문장 구간 수집을 확인했습니다. Vercel의 서버 IP에서 성공하는지는 별도 확인이 필요합니다.
 - `node tests/youtube-api.mjs`: 임시 데이터로 API 인증/소유권/중복/채점 잠금/메모/잘못된 구간/CSRF 확인 후 해당 임시 항목만 제거.
 - 지정 영상의 공식 oEmbed 제목 확인, 영어 자막 179 cue 및 자동 CC 959 cue 수집 확인. 영어 자막은 정리 후 159개 학습 구간, 자동 CC는 191개 구간.
 

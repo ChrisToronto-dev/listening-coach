@@ -9,7 +9,7 @@ const errors:Record<string,string>={NO_ENGLISH_CAPTIONS:'No English captions are
 export function localCaptions():Plugin{
  let running=false;
  return {name:'listening-coach-local-captions',apply:'serve',configureServer(server){
- server.middlewares.use('/api/local-captions',async(req,res)=>{
+ server.middlewares.use('/api/youtube/captions',async(req,res)=>{
   res.setHeader('Content-Type','application/json; charset=utf-8');res.setHeader('Cache-Control','no-store');
   const send=(status:number,body:unknown)=>{res.statusCode=status;res.end(JSON.stringify(body));};
   let acquired=false;

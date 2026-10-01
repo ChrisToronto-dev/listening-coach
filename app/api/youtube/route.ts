@@ -3,9 +3,14 @@ import { loadLearner, saveLearner } from '@/lib/learner-store';
 import { attemptKey, sentenceAttemptKey, parseYouTubeUrl, parseTranscript, videoView, validRange } from '@/lib/youtube';
 import { groupSentenceCues } from '@/lib/sentence-cues';
 import { score } from '@/lib/core';
+import { CaptionImportError, fetchYouTubeCaptions } from '@/lib/fetch-youtube-captions';
+import { localYouTubeCaptions } from '@/lib/local-youtube-captions';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+export const maxDuration = 60;
 const input=z.discriminatedUnion('action',[
+ z.object({action:z.literal('captions'),id:z.string().min(1).max(100)}),
  z.object({action:z.literal('add'),url:z.string().max(2000),title:z.string().trim().min(1).max(160)}),
  z.object({action:z.literal('transcript'),id:z.string(),transcript:z.string().max(500000),rightsBasis:z.string().trim().min(5).max(1000),confirmed:z.literal(true),captionSource:z.enum(['youtube-auto','youtube-captions']).optional()}),
  z.object({action:z.literal('notes'),id:z.string(),notes:z.string().max(20000)}),
@@ -18,14 +23,26 @@ const input=z.discriminatedUnion('action',[
  z.object({action:z.literal('revealSentence'),id:z.string(),index:z.number().int().min(0)}),
  z.object({action:z.literal('shadowSentence'),id:z.string(),index:z.number().int().min(0)}),
 ]);
-function fail(e:unknown){const message=e instanceof z.ZodError?'Check the information you entered.':e instanceof Error?e.message:'Could not save.';return Response.json({error:message==='AUTH'?'Open your learning space first.':message},{status:message==='AUTH'?401:message==='CONFLICT'?409:400});}
+function fail(e:unknown){const message=e instanceof z.ZodError?'Check the information you entered.':e instanceof Error?e.message:'Could not save.';return Response.json({error:message==='AUTH'?'Open your learning space first.':message},{status:e instanceof CaptionImportError?e.status:message==='AUTH'?401:message==='CONFLICT'?409:400});}
 export async function GET(){try{const {state}=await loadLearner();return Response.json({videos:state.videos.map(videoView)},{headers:{'Cache-Control':'no-store'}})}catch(e){return fail(e)}}
 export async function POST(req:Request){try{
  if(req.headers.get('origin')!==new URL(req.url).origin)return new Response('Forbidden',{status:403});
  if(Number(req.headers.get('content-length')??0)>600000)return new Response('Too large',{status:413});
- const p=input.parse(await req.json()),record=await loadLearner(),s=record.state;
+ const p=input.parse(await req.json());let record=await loadLearner(),s=record.state;
  let selected:string;
- if(p.action==='add'){
+ if(p.action==='captions'){
+  let video=s.videos.find(v=>v.id===p.id);
+  if(!video)throw new CaptionImportError('Could not find this item in My Videos.',404);
+  if(video.cues.length)throw new CaptionImportError('A transcript is already saved. Your existing practice history was kept.',409);
+  const result=await localYouTubeCaptions(video.videoId)??await fetchYouTubeCaptions(video.videoId,new URL(req.url).origin,req.headers.get('cookie')??'');
+  // Re-read after downloading to preserve practice-time updates during playback.
+  record=await loadLearner();s=record.state;video=s.videos.find(v=>v.id===p.id);
+  if(!video)throw new CaptionImportError('Could not find this item in My Videos.',404);
+  if(video.cues.length)throw new CaptionImportError('A transcript is already saved. Your existing practice history was kept.',409);
+  video.cues=result.cues;video.captionSource=result.automatic?'youtube-auto':'youtube-captions';
+  video.rightsBasis=`Personal study requested by the user: public YouTube ${result.automatic?'automatic':'English'} captions (${result.language})`;
+  video.start=result.cues[0].start;video.end=result.cues[0].end;video.updatedAt=new Date().toISOString();selected=video.id;
+ } else if(p.action==='add'){
   const parsed=parseYouTubeUrl(p.url),existing=s.videos.find(v=>v.videoId===parsed.videoId);
   if(existing)selected=existing.id;
   else {if(s.videos.length>=100)throw new Error('You can currently save up to 100 videos.');const now=new Date().toISOString();const video={...parsed,id:crypto.randomUUID(),title:p.title,createdAt:now,updatedAt:now,cues:[],rightsBasis:'',notes:'',end:Math.min(parsed.start+30,86400),attempts:{},revealed:[],shadowed:[],selectedCue:0};s.videos.push(video);selected=video.id;}
