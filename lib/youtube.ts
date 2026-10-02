@@ -9,6 +9,7 @@ export type VideoStudy = {
   revealedSentences?: number[]; shadowedSentences?: number[];
   selectedCue: number; updatedAt: string;
   selectedSentence?: number;
+  selectedSentences?: number[];
 };
 export type VideoView = Omit<VideoStudy, 'cues'> & {
   cues: { start: number; end: number; text?: string }[];

@@ -70,7 +70,9 @@ export function YouTubePlayer({videoId,start,end,loop,ref,onStatus}:{videoId:str
   }).catch(e=>{if(!disposed)setError((e as Error).message);});
   return()=>{disposed=true;clearTimeout(readyTimeout);p?.destroy();player.current=null;};
  },[videoId,retry,onStatus]);
- useEffect(()=>{if(!ready)return;player.current?.pauseVideo();player.current?.seekTo(start,true);},[start,end,ready]);
+ // Range changes are controlled by the practice panel. Do not pause a replay
+ // that was requested while its saved range was being updated.
+ useEffect(()=>{if(!ready)return;player.current?.pauseVideo();player.current?.seekTo(current.current.start,true);},[ready]);
  useEffect(()=>{const interval=setInterval(tick,200);return()=>clearInterval(interval);},[]);
  return <section className="youtube-player" aria-label="YouTube video player"><div className="youtube-frame" ref={host}/>{!ready&&!error&&<p role="status" className="player-status">Connecting to the YouTube player…</p>}{error&&<div role="alert" className="player-error"><p>{error}</p><button className="text-button" onClick={()=>setRetry(v=>v+1)}>Reconnect</button><a href={`https://www.youtube.com/watch?v=${videoId}&t=${Math.floor(start)}s`} target="_blank" rel="noreferrer">Open in YouTube<ExternalLink size={14}/></a></div>}<div className="youtube-speed"><span>Playback speed</span><select value={rate} disabled={!ready} onChange={e=>{const value=Number(e.target.value);setRate(value);player.current?.setPlaybackRate(value);}}>{rates.map(r=><option key={r} value={r}>{r}×</option>)}</select><small>{playing?'Playing':'Pause'}</small></div></section>;
 }

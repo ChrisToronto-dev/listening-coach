@@ -15,7 +15,7 @@ const input=z.discriminatedUnion('action',[
  z.object({action:z.literal('transcript'),id:z.string(),transcript:z.string().max(500000),rightsBasis:z.string().trim().min(5).max(1000),confirmed:z.literal(true),captionSource:z.enum(['youtube-auto','youtube-captions']).optional()}),
  z.object({action:z.literal('notes'),id:z.string(),notes:z.string().max(20000)}),
  z.object({action:z.literal('delete'),id:z.string()}),
- z.object({action:z.literal('range'),id:z.string(),start:z.number(),end:z.number()}),
+ z.object({action:z.literal('range'),id:z.string(),start:z.number(),end:z.number(),sentenceIndexes:z.array(z.number().int().min(0)).min(1).max(100).optional()}),
  z.object({action:z.literal('select'),id:z.string(),index:z.number().int().min(0),start:z.number().optional(),end:z.number().optional(),sentenceIndex:z.number().int().min(0).optional()}),
  z.object({action:z.literal('attempt'),id:z.string(),index:z.number().int().min(0).optional(),indexes:z.array(z.number().int().min(0)).min(1).max(100).optional(),sentenceIndexes:z.array(z.number().int().min(0)).min(1).max(100).optional(),answer:z.string().trim().min(1).max(20000),captions:z.boolean()}),
  z.object({action:z.literal('reveal'),id:z.string(),index:z.number().int().min(0)}),
@@ -57,7 +57,14 @@ export async function POST(req:Request){try{
    video.cues=parseTranscript(p.transcript);video.captionSource=p.captionSource;video.rightsBasis=p.rightsBasis;video.start=video.cues[0].start;video.end=video.cues[0].end;
   }
   if(p.action==='notes')video.notes=p.notes;
-  if(p.action==='range'){if(!validRange(p.start,p.end))throw new Error('Set the end time after the start time and within 24 hours.');video.start=p.start;video.end=p.end;video.selectedSentence=undefined;}
+  if(p.action==='range'){
+   if(!validRange(p.start,p.end))throw new Error('Set the end time after the start time and within 24 hours.');
+   if(p.sentenceIndexes){
+    const sentences=groupSentenceCues(video.cues), chosen=p.sentenceIndexes;
+    if(chosen.some((index,i)=>!sentences[index]||(i>0&&index!==chosen[i-1]+1))||sentences[chosen[0]].start!==p.start||sentences[chosen.at(-1)!].end!==p.end)throw new Error('Choose consecutive sentences matching the practice section.');
+   }
+   video.start=p.start;video.end=p.end;video.selectedSentence=undefined;video.selectedSentences=p.sentenceIndexes;
+  }
   if(p.action==='attempt'){
    if(p.sentenceIndexes && (p.index!==undefined||p.indexes))throw new Error('Choose the dictation section using one selection method.');
    const sentences=p.sentenceIndexes?groupSentenceCues(video.cues):[];
@@ -79,7 +86,7 @@ export async function POST(req:Request){try{
      if(!sentence||sentence.firstIndex!==p.index||p.start!==sentence.start||p.end!==sentence.end)throw new Error('Check the selected sentence section.');
     }
     video.selectedCue=p.index;video.start=p.start??cue.start;video.end=p.end??cue.end;
-    video.selectedSentence=p.sentenceIndex;
+    video.selectedSentence=p.sentenceIndex;video.selectedSentences=undefined;
    }
    if(p.action==='reveal'&&!video.revealed.includes(p.index))video.revealed.push(p.index);
    if(p.action==='shadow'&&!video.shadowed.includes(p.index))video.shadowed.push(p.index);
