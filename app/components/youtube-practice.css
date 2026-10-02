@@ -2,7 +2,7 @@
 .yt-practice-header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:20px}
 .yt-practice-header h3{font-size:21px;line-height:1.4;margin:8px 0 0}
 .yt-attempt-state{font-size:11px;color:#637695;background:#f1f4fb;border-radius:20px;padding:7px 11px;white-space:nowrap}
-.yt-practice-transport{position:sticky;top:12px;z-index:5;padding:16px;background:#f6f8ff;border:1px solid #dce4f5;border-radius:14px;box-shadow:0 5px 16px #243b6010}
+.yt-practice-transport{position:sticky;top:12px;z-index:5;margin-bottom:20px;padding:16px;background:#f6f8ff;border:1px solid #dce4f5;border-radius:14px;box-shadow:0 5px 16px #243b6010}
 .yt-play-buttons{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .yt-play-buttons button{min-height:44px;white-space:nowrap;font-size:12px}
 .yt-play-buttons .yt-repeat{display:flex;align-items:center;gap:8px;padding:10px 13px;border:1px solid #dce3ef;border-radius:9px;background:#fff;color:#647591;margin-left:auto}
@@ -13,7 +13,22 @@
 .yt-playback-info small{color:#7c8ba3;font-size:11px}
 .yt-practice-scope{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:22px 0}
 .yt-practice-scope>div{text-align:center;min-width:0}.yt-practice-scope strong{display:block;font-size:13px;color:#435977}.yt-practice-scope small{display:block;font-size:11px;color:#8492a9;margin-top:5px;line-height:1.6}
+.yt-scope-mark{display:inline-flex;align-items:center;gap:7px;margin-bottom:8px;font-size:11px;color:#516b9a;cursor:pointer}.yt-scope-mark input{width:17px;height:17px;accent-color:#4059ef;cursor:pointer}
+.yt-practice-scope .yt-scope-time{display:block;margin-top:6px;font-size:12px;font-variant-numeric:tabular-nums;color:#536a91}.yt-scope-time b{font-weight:700;color:#3554d8}
 .yt-practice-scope button{padding:10px;min-height:40px;flex-shrink:0}
+.yt-marked-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 12px;padding:12px 15px;border:1px solid #e0e7f4;border-radius:11px;background:#f9fbff}.yt-marked-actions span{flex:1;min-width:160px;font-size:11px;line-height:1.6;color:#607594}.yt-marked-actions button{min-height:36px;font-size:11px;padding:8px 11px}
+.yt-sentence-picker{margin:0 0 18px;padding:13px 16px;border:1px solid #e0e7f4;border-radius:13px;background:#fbfcff}
+.yt-sentence-picker summary{display:flex;justify-content:space-between;gap:10px;align-items:center;cursor:pointer;font-size:13px;font-weight:700;color:#455b7b;list-style:none}
+.yt-sentence-picker summary::-webkit-details-marker{display:none}
+.yt-sentence-picker summary::before{content:'▸';color:#6f84ac;transition:transform .2s}
+.yt-sentence-picker[open] summary::before{transform:rotate(90deg)}
+.yt-sentence-picker summary span{font-size:11px;font-weight:500;color:#7487a5}
+.yt-sentence-picker>p{margin:11px 0 13px;font-size:11px;line-height:1.6;color:#7e8da4}
+.yt-sentence-list{max-height:220px;overflow-y:auto;overscroll-behavior:contain;border:1px solid #e4eaf4;border-radius:9px;background:#fff}
+.yt-sentence-row{display:flex;gap:11px;align-items:center;padding:9px 12px;border-bottom:1px solid #edf1f7;cursor:pointer}.yt-sentence-row:last-child{border-bottom:0}.yt-sentence-row.is-checked{background:#edf2ff}
+.yt-sentence-row input{width:17px;height:17px;flex:none;accent-color:#4059ef;cursor:pointer}.yt-sentence-number{width:27px;flex:none;font-size:11px;color:#8492aa;font-variant-numeric:tabular-nums}
+.yt-sentence-detail{min-width:0}.yt-sentence-detail strong{display:block;font-size:12px;font-weight:500;color:#506485;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.yt-sentence-detail small{display:block;margin-top:3px;font-size:10px;color:#8797af;font-variant-numeric:tabular-nums}
+.yt-sentence-limit{display:block;margin:0 0 10px;color:#ad5a45}
 .yt-practice .dictation-label{display:block;font-size:13px;font-weight:600;color:#485b79}
 .yt-practice textarea{display:block;width:100%;min-height:190px;margin-top:10px;padding:18px;line-height:1.85;font-size:16px;resize:vertical;background:#fcfdff;border:1px solid #d8e1ef;border-radius:12px}
 .yt-practice textarea:focus{outline:3px solid #4059ef1c;border-color:#8198f3}.yt-practice textarea[readonly]{background:#f4f6fb;color:#677895}
