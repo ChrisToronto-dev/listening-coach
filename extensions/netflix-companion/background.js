@@ -7,7 +7,7 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
   if (!watchId(sender.url) || watchId(sender.url) !== c?.watchId || !['status', 'seek', 'play', 'pause'].includes(c.action)) return false;
   if (c.action === 'seek' && (!Number.isFinite(c.time) || c.time < 0 || c.time > 86400)) return false;
   chrome.scripting.executeScript({ target: { tabId: sender.tab.id, frameIds: [0] }, world: 'MAIN', func: netflixControl, args: [{ action: c.action, watchId: c.watchId, ...(c.action === 'seek' ? { time: c.time } : {}) }] })
-    .then(results => respond(results[0]?.result ?? { failed: true, error: 'The Netflix player did not respond.' }), () => respond({ failed: true, error: 'Update the extension to 0.2.1 and refresh both tabs.' }));
+    .then(results => respond(results[0]?.result ?? { failed: true, error: 'The Netflix player did not respond.' }), () => respond({ failed: true, error: 'Update the extension to 0.2.2 and refresh both tabs.' }));
   return true;
 });
 
@@ -16,7 +16,7 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
   async function dispatch() {
     const command = message.command;
     if (!validCommand(command)) throw Error('Invalid playback command.');
-    if (command.action === 'ping') return { version: '0.2.1' };
+    if (command.action === 'ping') return { version: '0.2.2' };
     if (command.action === 'list') {
       const tabs = await chrome.tabs.query({ url: 'https://www.netflix.com/watch/*' });
       return { tabs: tabs.filter(t => watchId(t.url)).map(t => ({ tabId: t.id, watchId: watchId(t.url), title: (t.title || 'Netflix').slice(0, 200) })) };

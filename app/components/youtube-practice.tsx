@@ -11,12 +11,14 @@ type Props = {
   count: number; label: string; answer: string; captions: boolean; attempt?: VideoAttempt;
   transcript: string; hasPrevious: boolean; hasNext: boolean;
   sentences: VideoView['transcriptCues']; selectedSentenceIndexes: number[]; checkedSentences: number[];
-  onPlay: () => void; onReplay: () => void; onLoop: (next: boolean) => void;
+  onPlay: () => void; onReplay: () => void; onRewind: (seconds: number) => void; onLoop: (next: boolean) => void;
   onAnswer: (text: string) => void; onCaptions: (next: boolean) => void;
   onSubmit: () => void; onPrevious: () => void; onNext: () => void;
   onSelectRange: (start: number, end: number, repeat: boolean) => void;
-  onToggleSentence: (index: number) => void; onClearSentences: () => void;
+  onSelectSentence: (index: number) => void; onToggleSentence: (index: number) => void; onClearSentences: () => void;
   onImport: () => void; onNotes: () => void;
+  attemptStateLabel?: string; submitHelp?: string; feedbackHelp?: string;
+  emptyTitle?: string; emptyBody?: string; emptyActionLabel?: string;
 };
 
 function sectionTime(seconds: number) {
@@ -52,6 +54,8 @@ export function YouTubePractice(props: Props) {
     <div className="yt-play-buttons">
       <button className="primary" disabled={!status.ready || busy} onClick={props.onPlay}>{status.playing ? <Pause size={18}/> : <Play size={18}/>} {status.playing ? 'Pause' : 'Play'}</button>
       <button className="secondary" disabled={!status.ready || busy} onClick={props.onReplay} aria-keyshortcuts="Alt+R" title="Play from start (Alt/Option + R)"><RotateCcw size={17}/>Play from start</button>
+      <button className="secondary yt-rewind" disabled={!status.ready || busy} onClick={() => props.onRewind(3)} title="Go back 3 seconds" aria-label="Go back 3 seconds">−3s</button>
+      <button className="secondary yt-rewind" disabled={!status.ready || busy} onClick={() => props.onRewind(5)} title="Go back 5 seconds" aria-label="Go back 5 seconds">−5s</button>
       <button className="yt-repeat" role="switch" aria-label="Repeat selection" aria-checked={loop} disabled={!status.ready || busy || !count} onClick={() => props.onLoop(!loop)}><Repeat2 size={17}/>Repeat <strong>{loop ? 'On' : 'Off'}</strong></button>
     </div>
     <div className="yt-playback-info"><span>{count ? `${sectionTime(start)} – ${sectionTime(end)} · ${sectionDuration(start, end)}` : 'Full video'}</span><small>{!status.ready ? 'Waiting for player' : loop ? 'Repeating your selection' : 'Repeat off · playback continues'}</small></div>
@@ -69,7 +73,7 @@ export function YouTubePractice(props: Props) {
   }}>
     <div className="yt-practice-header">
       <div><span className="nf-overline">LISTEN · WRITE · CHECK</span><h3>{count > 1 ? 'One passage, one answer.' : 'Listen closely. Write what you hear.'}</h3></div>
-      {count > 0 && <span className="yt-attempt-state">{attempt ? 'First answer saved' : 'Ready to practice'}</span>}
+      {count > 0 && <span className="yt-attempt-state">{attempt ? props.attemptStateLabel ?? 'First answer saved' : 'Ready to practice'}</span>}
     </div>
     {count > 0 ? <>
       <div className="yt-practice-scope">
@@ -81,13 +85,13 @@ export function YouTubePractice(props: Props) {
       {rangeCount > 100 && <small className="yt-sentence-limit">Choose a section of up to 100 sentences.</small>}
       {props.sentences.length > 0 && <details className="yt-sentence-picker" onToggle={event => {if(event.currentTarget.open) requestAnimationFrame(centerCurrentSentence);}}>
         <summary>Choose sentences here <span>{checked.length ? `${checked.length} checked` : 'No sentences checked'}</span></summary>
-        <p>Check the sentences you want. Playback and dictation include every sentence between the first and last checked.</p>
+        <p>Click a sentence to practice it now. Check several sentences, then use the checked section to practice them together.</p>
         <div className="yt-sentence-list" ref={sentenceList} role="group" aria-label="Practice sentence selection">
-          {props.sentences.map((sentence, index) => <label className={`yt-sentence-row ${checked.includes(index) ? 'is-checked' : ''}`} key={`${sentence.key}:${index}`} data-current-sentence={index === props.selectedSentenceIndexes[0] ? 'true' : undefined}>
-            <input type="checkbox" checked={checked.includes(index)} onChange={() => props.onToggleSentence(index)}/>
+          {props.sentences.map((sentence, index) => <div className={`yt-sentence-row ${checked.includes(index) ? 'is-checked' : ''} ${props.selectedSentenceIndexes.includes(index) ? 'is-current' : ''}`} key={`${sentence.key}:${index}`} data-current-sentence={index === props.selectedSentenceIndexes[0] ? 'true' : undefined}>
+            <input type="checkbox" aria-label={`Mark sentence ${index + 1}`} checked={checked.includes(index)} disabled={busy} onChange={() => props.onToggleSentence(index)}/>
             <span className="yt-sentence-number">{index + 1}</span>
-            <span className="yt-sentence-detail"><strong>{sentence.text || 'Listen first'}</strong><small>{sectionTime(sentence.start)} – {sectionTime(sentence.end)} · {sectionDuration(sentence.start, sentence.end)}</small></span>
-          </label>)}
+            <button type="button" className="yt-sentence-detail" aria-current={props.selectedSentenceIndexes.includes(index) ? 'true' : undefined} disabled={busy} onClick={() => props.onSelectSentence(index)}><strong>{sentence.text || 'Listen first'}</strong><small>{sectionTime(sentence.start)} – {sectionTime(sentence.end)} · {sectionDuration(sentence.start, sentence.end)}</small></button>
+          </div>)}
         </div>
       </details>}
       {playback}
@@ -100,11 +104,11 @@ export function YouTubePractice(props: Props) {
         {attempt ? <div className="answer-feedback" role="status">
           <div className="yt-feedback-heading"><strong>{attempt.accuracy}% word match</strong><span>{attempt.captions ? 'Captions / hint used' : 'Without hints'}</span></div>
           <span className="nf-overline">REFERENCE TRANSCRIPT</span><p>{transcript}</p>
-          <small>Your first answer is saved. Capitalization, punctuation, and some contractions are normalized. Replay the section to listen for what you missed.</small>
+          <small>{props.feedbackHelp ?? 'Your first answer is saved. Capitalization, punctuation, and some contractions are normalized. Replay the section to listen for what you missed.'}</small>
           {props.hasNext && <button type="button" className="secondary" disabled={busy} onClick={props.onNext}>Next sentence<ChevronRight size={16}/></button>}
-        </div> : <div className="yt-submit-row"><button type="submit" className="primary" disabled={!canSubmit} aria-keyshortcuts="Control+Enter Meta+Enter"><Check size={17}/>{busy ? 'Saving…' : 'Check answer'}</button><small>Your first answer is saved when you check it.</small></div>}
+        </div> : <div className="yt-submit-row"><button type="submit" className="primary" disabled={!canSubmit} aria-keyshortcuts="Control+Enter Meta+Enter"><Check size={17}/>{busy ? 'Saving…' : 'Check answer'}</button><small>{props.submitHelp ?? 'Your first answer is saved when you check it.'}</small></div>}
       </form>
       <p className="yt-selection-help">Use the checkbox between the arrows or open Choose sentences here. Turn on Repeat to loop the selected section.</p>
-    </> : <>{playback}<div className="youtube-empty"><BookOpen size={30}/><h3>Add captions to start dictation.</h3><p>You can play the video now. Import English captions or upload a VTT/SRT file to practice and check your answers.</p><div className="button-row"><button className="secondary" onClick={props.onImport}>Upload VTT / SRT</button><button className="text-button" onClick={props.onNotes}>Take notes while listening</button></div></div></>}
+    </> : <>{playback}<div className="youtube-empty"><BookOpen size={30}/><h3>{props.emptyTitle ?? 'Add captions to start dictation.'}</h3><p>{props.emptyBody ?? 'You can play the video now. Import English captions or upload a VTT/SRT file to practice and check your answers.'}</p><div className="button-row"><button className="secondary" onClick={props.onImport}>{props.emptyActionLabel ?? 'Upload VTT / SRT'}</button><button className="text-button" onClick={props.onNotes}>Take notes while listening</button></div></div></>}
   </div>;
 }

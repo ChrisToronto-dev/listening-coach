@@ -5,6 +5,7 @@
 .yt-practice-transport{position:sticky;top:12px;z-index:5;margin-bottom:20px;padding:16px;background:#f6f8ff;border:1px solid #dce4f5;border-radius:14px;box-shadow:0 5px 16px #243b6010}
 .yt-play-buttons{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .yt-play-buttons button{min-height:44px;white-space:nowrap;font-size:12px}
+.yt-play-buttons .yt-rewind{min-width:52px;padding-inline:13px;font-variant-numeric:tabular-nums;color:#4f6282}
 .yt-play-buttons .yt-repeat{display:flex;align-items:center;gap:8px;padding:10px 13px;border:1px solid #dce3ef;border-radius:9px;background:#fff;color:#647591;margin-left:auto}
 .yt-repeat strong{font-size:10px;border-radius:12px;background:#edf0f6;padding:3px 7px}
 .yt-play-buttons .yt-repeat[aria-checked=true]{background:#e9efff;border-color:#a4b6f5;color:#3554d8}
@@ -25,9 +26,9 @@
 .yt-sentence-picker summary span{font-size:11px;font-weight:500;color:#7487a5}
 .yt-sentence-picker>p{margin:11px 0 13px;font-size:11px;line-height:1.6;color:#7e8da4}
 .yt-sentence-list{max-height:220px;overflow-y:auto;overscroll-behavior:contain;border:1px solid #e4eaf4;border-radius:9px;background:#fff}
-.yt-sentence-row{display:flex;gap:11px;align-items:center;padding:9px 12px;border-bottom:1px solid #edf1f7;cursor:pointer}.yt-sentence-row:last-child{border-bottom:0}.yt-sentence-row.is-checked{background:#edf2ff}
+.yt-sentence-row{display:flex;gap:11px;align-items:center;padding:9px 12px;border-bottom:1px solid #edf1f7}.yt-sentence-row:last-child{border-bottom:0}.yt-sentence-row.is-checked{background:#edf2ff}.yt-sentence-row.is-current{box-shadow:inset 3px 0 #4059ef}
 .yt-sentence-row input{width:17px;height:17px;flex:none;accent-color:#4059ef;cursor:pointer}.yt-sentence-number{width:27px;flex:none;font-size:11px;color:#8492aa;font-variant-numeric:tabular-nums}
-.yt-sentence-detail{min-width:0}.yt-sentence-detail strong{display:block;font-size:12px;font-weight:500;color:#506485;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.yt-sentence-detail small{display:block;margin-top:3px;font-size:10px;color:#8797af;font-variant-numeric:tabular-nums}
+.yt-sentence-detail{min-width:0;flex:1;padding:0;text-align:left;cursor:pointer}.yt-sentence-detail:hover strong{color:#4059ef}.yt-sentence-detail strong{display:block;font-size:12px;font-weight:500;color:#506485;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.yt-sentence-detail small{display:block;margin-top:3px;font-size:10px;color:#8797af;font-variant-numeric:tabular-nums}
 .yt-sentence-limit{display:block;margin:0 0 10px;color:#ad5a45}
 .yt-practice .dictation-label{display:block;font-size:13px;font-weight:600;color:#485b79}
 .yt-practice textarea{display:block;width:100%;min-height:190px;margin-top:10px;padding:18px;line-height:1.85;font-size:16px;resize:vertical;background:#fcfdff;border:1px solid #d8e1ef;border-radius:12px}

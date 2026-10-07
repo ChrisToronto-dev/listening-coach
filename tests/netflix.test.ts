@@ -5,14 +5,33 @@ import vm from 'node:vm';
 import { isLocalApp, watchId, validCommand } from '../extensions/netflix-companion/protocol.js';
 import { netflixControl } from '../extensions/netflix-companion/player-control.js';
 
-test('Netflix bridge only accepts the exact local app and Netflix watch pages', () => {
+test('Netflix bridge accepts loopback app ports and rejects remote origins', () => {
   assert.equal(isLocalApp('http://127.0.0.1:5173/netflix'), true);
   assert.equal(isLocalApp('http://localhost:5173/netflix'), true);
-  for (const url of ['https://localhost:5173', 'http://localhost:5174', 'http://127.0.0.1.evil.test:5173', 'https://example.com']) assert.equal(isLocalApp(url), false);
+  assert.equal(isLocalApp('http://localhost:3000/netflix'), true);
+  assert.equal(isLocalApp('http://127.0.0.1:5174/netflix'), true);
+  for (const url of ['https://localhost:3000/netflix', 'http://127.0.0.1.evil.test:5173/netflix', 'http://localhost.evil.test:3000/netflix', 'https://example.com']) assert.equal(isLocalApp(url), false);
   assert.equal(watchId('https://www.netflix.com/watch/12345?trackId=1'), '12345');
   for (const url of ['https://www.netflix.com/login', 'https://www.netflix.com.evil.test/watch/1', 'http://www.netflix.com/watch/1']) assert.equal(watchId(url), null);
   assert.equal(validCommand({ action: 'range', tabId: 5, watchId: '123', start: 2, end: 8, loop: true }), true);
   for (const c of [{ action: 'eval' }, { action: 'seek', tabId: 5, watchId: '123', time: -1 }, { action: 'range', tabId: 5, watchId: '123', start: 9, end: 8, loop: true }]) assert.equal(validCommand(c), false);
+});
+
+test('Netflix content script connects on localhost:3000 but not foreign pages or frames', () => {
+  const source = readFileSync(new URL('../extensions/netflix-companion/local-bridge.js', import.meta.url), 'utf8');
+  function enabled(address: string, topFrame = true) {
+    const url = new URL(address);
+    let listeners = 0;
+    const window = { top: null as unknown, addEventListener: () => { listeners++; } };
+    window.top = topFrame ? window : {};
+    vm.runInNewContext(source, { window, location: { origin: url.origin, protocol: url.protocol, hostname: url.hostname } });
+    return listeners > 0;
+  }
+  assert.equal(enabled('http://localhost:3000/netflix'), true);
+  assert.equal(enabled('http://127.0.0.1:5174/netflix'), true);
+  assert.equal(enabled('https://localhost:3000/netflix'), false);
+  assert.equal(enabled('http://localhost.evil.test:3000/netflix'), false);
+  assert.equal(enabled('http://localhost:3000/netflix', false), false);
 });
 
 function playerHarness() {

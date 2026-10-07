@@ -1,5 +1,5 @@
 export function isLocalApp(url) {
-  try { return ['http://127.0.0.1:5173', 'http://localhost:5173'].includes(new URL(url).origin); }
+  try { const parsed = new URL(url); return parsed.protocol === 'http:' && ['127.0.0.1', 'localhost'].includes(parsed.hostname); }
   catch { return false; }
 }
 export function watchId(url) {

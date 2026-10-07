@@ -1,5 +1,5 @@
 (() => {
-  if (!['http://127.0.0.1:5173', 'http://localhost:5173'].includes(location.origin) || window.top !== window) return;
+  if (location.protocol !== 'http:' || !['127.0.0.1', 'localhost'].includes(location.hostname) || window.top !== window) return;
   window.addEventListener('message', async event => {
     const m = event.data;
     if (event.source !== window || event.origin !== location.origin || m?.source !== 'listening-coach-page' || typeof m.id !== 'string' || m.id.length > 80) return;

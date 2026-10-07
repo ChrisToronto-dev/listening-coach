@@ -1,4 +1,12 @@
-.netflix-study{display:grid;gap:22px;max-width:1050px}
+.netflix-study{display:grid;gap:0;max-width:1050px}
+.netflix-study>.video-main{width:100%}
+.netflix-player-panel .video-title>.eyebrow{display:flex;align-items:center;gap:8px;color:#b4424f}
+.netflix-player-panel .video-title>p{font-size:14px;color:#7d899f;line-height:1.8}
+.netflix-learning-panel{padding:25px}
+.netflix-caption-tools{scroll-margin-top:24px;margin-top:30px;padding-top:28px;border-top:1px solid #e7eaf1}
+.netflix-caption-tools .nf-subtitles{margin-top:0;padding-top:0;border-top:0}
+.netflix-practice-message{margin:20px 0 0;padding:13px 15px;border-radius:9px;background:#f3f6fc;color:#60708e;font-size:12px;line-height:1.7}
+.netflix-saved>h3 span{margin-left:7px;font-weight:400}
 .netflix-connect{padding:28px;min-width:0}
 .netflix-connect>.eyebrow{display:flex;align-items:center;gap:9px;color:#b4424f}
 .netflix-connect h2{font-size:26px;margin:16px 0}
@@ -20,7 +28,7 @@
 .netflix-title input{display:block;width:100%;margin-top:8px}
 .netflix-clip{border-top:1px solid #e7eaf1;margin-top:20px;padding-top:20px}
 .netflix-note{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;color:#62708b}
-@media(max-width:650px){.netflix-connect{padding:18px}.netflix-connect h2{font-size:22px}.netflix-connect details{padding:14px}.netflix-connect .panel-heading{flex-wrap:wrap;gap:10px}.netflix-video-status{align-items:stretch;flex-direction:column}.netflix-video-status .secondary{width:100%}}
+@media(max-width:650px){.netflix-connect,.netflix-learning-panel{padding:18px}.netflix-connect h2{font-size:22px}.netflix-connect details{padding:14px}.netflix-connect .panel-heading{flex-wrap:wrap;gap:10px}.netflix-video-status{align-items:stretch;flex-direction:column}.netflix-video-status .secondary{width:100%}}
 
 .nf-controls{margin-top:22px}
 .nf-transport,.nf-play-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}

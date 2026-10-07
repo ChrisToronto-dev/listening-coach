@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Listening Coach · Netflix Companion",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "permissions": ["scripting"],
   "description": "Controls Netflix playback and section repeat from your local Listening Coach. It never reads or stores sign-in details.",
   "background": { "service_worker": "background.js", "type": "module" },

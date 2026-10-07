@@ -27,7 +27,7 @@ function loadYouTube():Promise<YouTubeAPI>{
  return apiPromise;
 }
 export type YouTubePlayerStatus={ready:boolean;playing:boolean;time:number;duration:number};
-export type PlayerHandle={time:()=>number;duration:()=>number;replay:(time?:number)=>void;pause:()=>void;playPause:()=>void};
+export type PlayerHandle={time:()=>number;duration:()=>number;replay:(time?:number)=>void;rewind:(seconds:number)=>void;pause:()=>void;playPause:()=>void};
 export function YouTubePlayer({videoId,start,end,loop,ref,onStatus}:{videoId:string;start:number;end:number;loop:boolean;ref?:Ref<PlayerHandle>;onStatus?:(status:YouTubePlayerStatus)=>void}){
  const host=useRef<HTMLDivElement>(null),player=useRef<YTPlayer|null>(null),lastStatus=useRef(0);
  const [ready,setReady]=useState(false),[playing,setPlaying]=useState(false),[rate,setRate]=useState(1),[rates,setRates]=useState<number[]>([1]),[error,setError]=useState(''),[retry,setRetry]=useState(0);
@@ -45,6 +45,7 @@ export function YouTubePlayer({videoId,start,end,loop,ref,onStatus}:{videoId:str
   time:()=>player.current?.getCurrentTime()??0,
   duration:()=>player.current?.getDuration()??0,
   replay:(time=start)=>{player.current?.seekTo(time,true);player.current?.playVideo();},
+  rewind:(seconds)=>{const p=player.current;if(!p)return;p.seekTo(Math.max(start,p.getCurrentTime()-seconds),true);},
   pause:()=>player.current?.pauseVideo(),
   playPause:()=>{
    const p=player.current;if(!p)return;
