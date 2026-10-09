@@ -19,7 +19,8 @@ export function attemptKey(indexes: number[]) {
   return indexes.length === 1 ? String(indexes[0]) : `range:${indexes[0]}-${indexes[indexes.length - 1]}`;
 }
 export function sentenceAttemptKey(indexes: number[]) {
-  return `sentence:${indexes[0]}-${indexes[indexes.length - 1]}`;
+  const contiguous = indexes.every((index, position) => position === 0 || index === indexes[position - 1] + 1);
+  return contiguous ? `sentence:${indexes[0]}-${indexes[indexes.length - 1]}` : `sentence-set:${indexes.join(',')}`;
 }
 export function parseYouTubeUrl(value: string) {
   let url: URL;

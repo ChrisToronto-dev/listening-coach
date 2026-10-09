@@ -16,6 +16,11 @@ test('saved sentence group wins over identical raw cue timing, preserving its an
   const video=fixture();video.selectedSentences=[0,1];
   assert.deepEqual(restorePracticeSelection(videoView(video)),{indexes:[0],sentenceIndexes:[0,1]});
 });
+test('saved checkbox selection restores only the checked sentences when they are separated',()=>{
+  const video=fixture(),sentences=videoView(video).transcriptCues;
+  video.selectedSentences=[0,2];video.start=sentences[0].start;video.end=sentences[2].end;
+  assert.deepEqual(restorePracticeSelection(videoView(video)),{indexes:[0,1],sentenceIndexes:[0,2]});
+});
 test('legacy single-caption practice retains its original answer scope',()=>{
   assert.deepEqual(restorePracticeSelection(videoView(fixture())),{indexes:[0],sentenceIndexes:null});
 });

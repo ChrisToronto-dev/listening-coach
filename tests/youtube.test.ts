@@ -1,6 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { attemptKey, parseYouTubeUrl, parseTranscript, videoView, validRange, boundaryAction, type VideoStudy } from '../lib/youtube.ts';
+import { attemptKey, sentenceAttemptKey, parseYouTubeUrl, parseTranscript, videoView, validRange, boundaryAction, type VideoStudy } from '../lib/youtube.ts';
+test('sentence attempt keys distinguish different sparse checkbox selections',()=>{
+ assert.equal(sentenceAttemptKey([2,3]),'sentence:2-3');
+ assert.equal(sentenceAttemptKey([2,5]),'sentence-set:2,5');
+ assert.notEqual(sentenceAttemptKey([2,5]),sentenceAttemptKey([2,7]));
+});
 test('YouTube links normalize watch/short/share/embed formats and timestamps',()=>{
  for(const url of ['https://www.youtube.com/watch?v=MxkVneD7-HY&list=test','https://youtu.be/MxkVneD7-HY','https://m.youtube.com/shorts/MxkVneD7-HY','https://www.youtube.com/embed/MxkVneD7-HY'])assert.equal(parseYouTubeUrl(url).videoId,'MxkVneD7-HY');
  assert.equal(parseYouTubeUrl('https://youtu.be/MxkVneD7-HY?t=1m23s').start,83);

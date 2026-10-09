@@ -1,6 +1,6 @@
 'use client';
 /* eslint-disable @next/next/no-html-link-for-pages */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ExternalLink, Link2, Save, Tv } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NetflixSubtitles, type NetflixPracticeSource } from './netflix-subtitles';
@@ -39,7 +39,6 @@ export function NetflixStudy() {
   const [practiceSource, setPracticeSource] = useState<NetflixPracticeSource>({ id: '', sentences: [] });
   const [selectedSentences, setSelectedSentences] = useState<number[]>([]), [markedSentences, setMarkedSentences] = useState<number[]>([]), [focusedSentence, setFocusedSentence] = useState(0);
   const [answer, setAnswer] = useState(''), [usedCaptions, setUsedCaptions] = useState(false), [attempt, setAttempt] = useState<VideoAttempt>();
-  const [revealedSentenceKeys, setRevealedSentenceKeys] = useState<Set<string>>(() => new Set());
   const dirty = useRef(false), pending = useRef(false), initializedSource = useRef(''), captionPanel = useRef<HTMLDivElement>(null);
   const [extensionVersion, setExtensionVersion] = useState('');
   const sentences = practiceSource.sentences;
@@ -47,12 +46,9 @@ export function NetflixStudy() {
   const practiceStart = sentences[chosenSentences[0]]?.start ?? start;
   const practiceEnd = sentences[chosenSentences.at(-1) ?? -1]?.end ?? end;
   const practiceText = chosenSentences.map(index => sentences[index]?.text).filter(Boolean).join(' ');
-  const revealScope = `${target?.watchId ?? ''}:${practiceSource.id}:`;
-  const displaySentences = useMemo(() => {
-    return sentences.map(sentence => ({ ...sentence, text: revealedSentenceKeys.has(revealScope + sentence.key) ? sentence.text : undefined }));
-  }, [sentences, revealScope, revealedSentenceKeys]);
   const firstSentence = chosenSentences[0] ?? -1, lastSentence = chosenSentences.at(-1) ?? -1;
-  const practiceLabel = chosenSentences.length ? `Sentence${chosenSentences.length > 1 ? 's' : ''} ${firstSentence + 1}${chosenSentences.length > 1 ? `–${lastSentence + 1}` : ''} of ${sentences.length}` : `Sentence 0 of ${sentences.length}`;
+  const consecutiveSentences = chosenSentences.every((index, position) => position === 0 || index === chosenSentences[position - 1] + 1);
+  const practiceLabel = chosenSentences.length ? consecutiveSentences ? `Sentence${chosenSentences.length > 1 ? 's' : ''} ${firstSentence + 1}${chosenSentences.length > 1 ? `–${lastSentence + 1}` : ''} of ${sentences.length}` : `${chosenSentences.length} selected sentences of ${sentences.length}` : `Sentence 0 of ${sentences.length}`;
   const updatePracticeSource = useCallback((source: NetflixPracticeSource) => setPracticeSource(source), []);
   const refresh = useCallback(async () => {
     setBusy(true); setError('');
@@ -114,18 +110,26 @@ export function NetflixStudy() {
   function selectSentence(index: number) {
     const sentence = sentences[index]; if (!sentence) return;
     setFocusedSentence(index); setSelectedSentences([index]); setStart(sentence.start); setEnd(sentence.end); resetAnswer();
-    if (status?.loop) void command('range', { start: sentence.start, end: sentence.end, loop: true });
+    const loop = !!status?.loop;
+    void (async () => {
+      const applied = await command('range', { start: sentence.start, end: sentence.end, loop });
+      if (applied && !loop) await command('seek', { time: sentence.start });
+    })();
   }
   function toggleMarkedSentence(index: number) {
     if (!sentences[index]) return;
     setMarkedSentences(before => before.includes(index) ? before.filter(value => value !== index) : [...before, index].sort((a, b) => a - b));
   }
-  async function selectPracticeRange(from: number, to: number, repeat: boolean) {
-    const indexes = sentences.map((sentence, index) => ({ sentence, index })).filter(({ sentence }) => sentence.start < to && sentence.end > from).map(({ index }) => index);
+  async function selectPracticeRange(from: number, to: number, repeat: boolean, selectedIndexes?: number[]) {
+    const indexes = selectedIndexes?.length
+      ? [...new Set(selectedIndexes)].filter(index => !!sentences[index]).sort((a, b) => a - b)
+      : sentences.map((sentence, index) => ({ sentence, index })).filter(({ sentence }) => sentence.start < to && sentence.end > from).map(({ index }) => index);
     if (!indexes.length) return;
     setSelectedSentences(indexes); setMarkedSentences(indexes); setFocusedSentence(indexes[0]); setStart(from); setEnd(to); resetAnswer();
-    if (repeat && await command('range', { start: from, end: to, loop: true })) setMessage('Repeating the selected caption section.');
-    else if (!repeat) setMessage(`${formatTime(from)} – ${formatTime(to)} selected.`);
+    const applied = await command('range', { start: from, end: to, loop: repeat });
+    if (!applied) return;
+    if (repeat) setMessage('Repeating the selected caption section.');
+    else if (await command('seek', { time: from })) setMessage(`${formatTime(from)} – ${formatTime(to)} selected.`);
   }
   function rangeValid() {
     if (!validRange(practiceStart, practiceEnd) || !status?.duration || practiceEnd > status.duration) { setError('Set the start and end within the video length.'); return false; }
@@ -137,7 +141,10 @@ export function NetflixStudy() {
   }
   async function playPause() {
     if (status?.paused !== false) {
-      if ((status?.time ?? 0) < practiceStart || (status?.time ?? 0) >= practiceEnd - .08) if (!await command('seek', { time: practiceStart })) return;
+      const time = status?.time ?? 0;
+      const beforeSelection = time < practiceStart;
+      const finishedRepeatedSelection = !!status?.loop && time >= practiceEnd - .08;
+      if ((beforeSelection || finishedRepeatedSelection) && !await command('seek', { time: practiceStart })) return;
       await command('play');
     } else await command('pause');
   }
@@ -152,11 +159,6 @@ export function NetflixStudy() {
   function submitAnswer() {
     if (!answer.trim() || !practiceText) return;
     void command('pause');
-    setRevealedSentenceKeys(previous => {
-      const next = new Set(previous);
-      for (const index of chosenSentences) next.add(revealScope + sentences[index].key);
-      return next;
-    });
     setAttempt({ answer, accuracy: score(answer, practiceText), captions: usedCaptions, createdAt: new Date().toISOString(), sentenceIndexes: chosenSentences });
   }
   async function save() {
@@ -186,7 +188,7 @@ export function NetflixStudy() {
     <div className="youtube-toolbar"><div><span className="eyebrow">NETFLIX LISTENING</span><h2>Practice Listening with Netflix</h2></div><a className="secondary" href="https://www.netflix.com/login" target="_blank" rel="noreferrer">Open Netflix<ExternalLink size={16}/></a></div>
     <div className="video-main">
       <section className="panel video-main-panel netflix-connect netflix-player-panel">
-        <div className="video-title"><span className="eyebrow"><Tv size={18}/> ORIGINAL AUDIO · NETFLIX</span><h2>{target?.title ?? 'Connect a Netflix video'}</h2><p>Play Netflix in its official Chrome tab, then practice here with the same sentence workflow as YouTube.</p></div>
+        <div className="video-title"><span className="eyebrow"><Tv size={18}/> ORIGINAL AUDIO · NETFLIX</span><h2>{target?.title ?? 'Connect a Netflix video'}</h2><p>Choose a caption, shadow the line aloud, and repeat difficult sections at your pace.</p></div>
         <div className="button-row"><a className="primary" href="https://www.netflix.com/login" target="_blank" rel="noreferrer">Open Netflix / Sign in<ExternalLink size={16}/></a><button className="secondary" disabled={busy} onClick={refresh}><Link2 size={16}/>{installed ? 'Refresh video list' : 'Check extension connection'}</button></div>
         <details open={!installed}><summary>Install extension / Update to 0.2.2</summary><p>Version 0.2.2 connects from localhost or 127.0.0.1 on any local port. If the extension is already installed, replace its files with the ZIP below, refresh it on the extension management page, then refresh Netflix and the learning app.</p><ol>
           <li>Open this learning app in regular Chrome at its local address, such as <code>http://localhost:3000/netflix</code>.</li>
@@ -203,7 +205,7 @@ export function NetflixStudy() {
       {target && <section className="panel video-practice netflix-learning-panel">
         <Tabs value={tab} onValueChange={setTab}><TabsList className="video-tabs"><TabsTrigger value="practice">Practice</TabsTrigger><TabsTrigger value="notes">My Notes</TabsTrigger></TabsList>
           <TabsContent value="practice">
-            <YouTubePractice status={playerStatus} start={practiceStart} end={practiceEnd} loop={!!status?.loop} busy={busy} count={chosenSentences.length} label={practiceLabel} answer={answer} captions={usedCaptions} attempt={attempt} transcript={practiceText} sentences={displaySentences} selectedSentenceIndexes={chosenSentences} checkedSentences={markedSentences} hasPrevious={focusedSentence > 0} hasNext={focusedSentence < sentences.length - 1} onPlay={() => void playPause()} onReplay={() => void replay()} onRewind={seconds => void rewind(seconds)} onLoop={next => void apply(next)} onAnswer={setAnswer} onCaptions={setUsedCaptions} onSubmit={submitAnswer} onPrevious={() => selectSentence(focusedSentence - 1)} onNext={() => selectSentence(focusedSentence + 1)} onSelectRange={(from, to, repeat) => void selectPracticeRange(from, to, repeat)} onSelectSentence={selectSentence} onToggleSentence={toggleMarkedSentence} onClearSentences={() => setMarkedSentences([])} onImport={() => captionPanel.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })} onNotes={() => setTab('notes')} attemptStateLabel="Answer checked" submitHelp="Check your answer against the captions captured in this browser." feedbackHelp="Capitalization, punctuation, and common contractions are normalized. Replay the section to listen for what you missed." emptyTitle="Capture captions to start dictation." emptyBody="Turn on Netflix captions and play the video, or upload a VTT/SRT file below. Captured sentences will appear here automatically." emptyActionLabel="Open caption tools"/>
+            <YouTubePractice shadowingOnly status={playerStatus} start={practiceStart} end={practiceEnd} loop={!!status?.loop} busy={busy} count={chosenSentences.length} label={practiceLabel} answer={answer} captions={usedCaptions} attempt={attempt} transcript={practiceText} sentences={sentences} selectedSentenceIndexes={chosenSentences} checkedSentences={markedSentences} hasPrevious={focusedSentence > 0} hasNext={focusedSentence < sentences.length - 1} onPlay={() => void playPause()} onReplay={() => void replay()} onRewind={seconds => void rewind(seconds)} onLoop={next => void apply(next)} onAnswer={setAnswer} onCaptions={setUsedCaptions} onSubmit={submitAnswer} onPrevious={() => selectSentence(focusedSentence - 1)} onNext={() => selectSentence(focusedSentence + 1)} onSelectRange={(from, to, repeat, indexes) => void selectPracticeRange(from, to, repeat, indexes)} onSelectSentence={selectSentence} onToggleSentence={toggleMarkedSentence} onClearSentences={() => setMarkedSentences([])} onImport={() => captionPanel.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })} onNotes={() => setTab('notes')} emptyTitle="Capture subtitles to start shadowing." emptyBody="Turn on Netflix captions and play the video, or upload a VTT/SRT file below. Captured sentences will appear here automatically." emptyActionLabel="Open caption tools"/>
             <div ref={captionPanel} className="netflix-caption-tools"><NetflixSubtitles key={target.watchId} watchId={target.watchId} title={target.title} liveSubtitle={status?.subtitle} time={status?.time ?? 0} connected={!!status?.ready && status.watchId === target.watchId} onPracticeSource={updatePracticeSource} onNote={text => { setNotes(value => (value + '\n' + text).trim().slice(0, 20000)); dirty.current = true; setMessage('Sentence added to notes.'); }}/></div>
           </TabsContent>
           <TabsContent value="notes"><div className="panel-heading"><div><span className="nf-overline">STUDY NOTES</span><h3>Lines to hear again and expressions to remember</h3></div></div><label className="netflix-title">Title to save<input value={title} maxLength={200} onChange={event => { setTitle(event.target.value); dirty.current = true; }}/></label><textarea className="video-notes" aria-label="Netflix practice notes" value={notes} maxLength={20000} onChange={event => { setNotes(event.target.value); dirty.current = true; }} placeholder="Write what you heard or expressions you want to remember."/><div className="button-row"><button className="primary" disabled={busy || !auth} onClick={save}><Save size={17}/>Save section and notes</button><button className="secondary" disabled={!status?.subtitle || busy} onClick={() => { setNotes(value => (value + `\n[${formatTime(status!.time)}] ${status!.subtitle}`).trim().slice(0, 20000)); dirty.current = true; }}>Add current caption to notes</button></div><small className="muted">The currently selected Practice section is saved with these notes.</small></TabsContent>

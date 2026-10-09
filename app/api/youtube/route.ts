@@ -61,7 +61,7 @@ export async function POST(req:Request){try{
    if(!validRange(p.start,p.end))throw new Error('Set the end time after the start time and within 24 hours.');
    if(p.sentenceIndexes){
     const sentences=groupSentenceCues(video.cues), chosen=p.sentenceIndexes;
-    if(chosen.some((index,i)=>!sentences[index]||(i>0&&index!==chosen[i-1]+1))||sentences[chosen[0]].start!==p.start||sentences[chosen.at(-1)!].end!==p.end)throw new Error('Choose consecutive sentences matching the practice section.');
+    if(!chosen.length||chosen.some((index,i)=>!sentences[index]||(i>0&&index<=chosen[i-1]))||sentences[chosen[0]].start!==p.start||sentences[chosen.at(-1)!].end!==p.end)throw new Error('Choose sentences matching the practice section.');
    }
    video.start=p.start;video.end=p.end;video.selectedSentence=undefined;video.selectedSentences=p.sentenceIndexes;
   }
@@ -71,7 +71,7 @@ export async function POST(req:Request){try{
    const chosen=p.sentenceIndexes??[], indexes=p.sentenceIndexes
     ? [...new Set(chosen.flatMap(index=>{const cue=sentences[index];return cue?Array.from({length:cue.lastIndex-cue.firstIndex+1},(_,i)=>cue.firstIndex+i):[];}))]
     : p.indexes??(p.index===undefined?[]:[p.index]);
-   if(p.sentenceIndexes){if(chosen.some((index,i)=>!sentences[index]||(i>0&&index!==chosen[i-1]+1)))throw new Error('Select consecutive sentences in order.');}
+   if(p.sentenceIndexes){if(!chosen.length||chosen.some((index,i)=>!sentences[index]||(i>0&&index<=chosen[i-1])))throw new Error('Select sentences in order.');}
    else if(!indexes.length||indexes.some((index,i)=>!video.cues[index]||(i>0&&index!==indexes[i-1]+1)))throw new Error('Select consecutive caption segments in order.');
    const key=p.sentenceIndexes?sentenceAttemptKey(chosen):attemptKey(indexes);
    const target=p.sentenceIndexes?chosen.map(index=>sentences[index].text).join(' '):indexes.map(index=>video.cues[index].text).join(' ');

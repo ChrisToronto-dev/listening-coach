@@ -36,7 +36,8 @@ export function YouTubeStudy({home=false}:{home?:boolean}){
  const practiceStart=practiceCues[0]?.start??0,practiceEnd=practiceCues.at(-1)?.end??playerStatus.duration;
  const firstSentence=sentenceIndexes?.[0]??video?.transcriptCues.findIndex(c=>c.end>practiceStart)??-1;
  const lastSentence=sentenceIndexes?.at(-1)??video?.transcriptCues.findLastIndex(c=>c.start<practiceEnd)??-1;
- const practiceLabel=sentenceIndexes?`Sentence${sentenceIndexes.length>1?'s':''} ${firstSentence+1}${sentenceIndexes.length>1?`–${lastSentence+1}`:''} of ${video?.transcriptCues.length}`:`Segment${dictationIndexes.length>1?'s':''} ${dictationIndexes[0]+1}${dictationIndexes.length>1?`–${dictationIndexes.at(-1)!+1}`:''} of ${video?.cues.length}`;
+ const consecutiveSentences=sentenceIndexes?.every((index,position)=>position===0||index===sentenceIndexes[position-1]+1)??false;
+ const practiceLabel=sentenceIndexes?(consecutiveSentences?`Sentence${sentenceIndexes.length>1?'s':''} ${firstSentence+1}${sentenceIndexes.length>1?`–${lastSentence+1}`:''} of ${video?.transcriptCues.length}`:`${sentenceIndexes.length} selected sentences of ${video?.transcriptCues.length}`):`Segment${dictationIndexes.length>1?'s':''} ${dictationIndexes[0]+1}${dictationIndexes.length>1?`–${dictationIndexes.at(-1)!+1}`:''} of ${video?.cues.length}`;
  function restoreSelection(v:VideoView){const selection=restorePracticeSelection(v);setDictationSelection(selection.indexes);setDictationSentences(selection.sentenceIndexes);setMarkedSentences(selection.sentenceIndexes??v.transcriptCues.map((cue,index)=>cue.start<v.end&&cue.end>v.start?index:-1).filter(index=>index>=0));setFocusedSentence(selection.sentenceIndexes?.[0]??Math.max(0,v.transcriptCues.findIndex(cue=>cue.end>v.start)));}
  function toggleMarkedSentence(index:number){if(!video?.transcriptCues[index])return;setMarkedSentences(before=>before.includes(index)?before.filter(value=>value!==index):[...before,index].sort((a,b)=>a-b));}
  const attempt=video&&practiceCues.length?video.attempts[sentenceIndexes?sentenceAttemptKey(sentenceIndexes):attemptKey(dictationIndexes)]:undefined;
@@ -69,10 +70,14 @@ export function YouTubeStudy({home=false}:{home?:boolean}){
  async function saveNotes(){const result=await mutate('notes',{notes});if(result){dirty.current=false;toast.success('Notes saved.')}}
  function rangeOkay(a:number,b:number){const duration=player.current?.duration()??0;if(!validRange(a,b)||(duration>0&&b>duration+.5)){toast.error('Choose an end time after the start time and within the video length.');return false;}return true;}
  async function applyLoop(next:boolean){if(!next){setLoop(false);return;}if(rangeOkay(practiceStart,practiceEnd)){setLoop(true);player.current?.replay(practiceStart);}}
- async function selectTranscriptRange(a:number,b:number,repeat:boolean){
+ async function selectTranscriptRange(a:number,b:number,repeat:boolean,requestedSentences?:number[]){
   if(!video||!rangeOkay(a,b))return;
-  const indexes=video.cues.map((item,index)=>({item,index})).filter(({item})=>item.start<b&&item.end>a).map(({index})=>index);
-  const selectedSentences=video.transcriptCues.map((item,index)=>({item,index})).filter(({item})=>item.start<b&&item.end>a).map(({index})=>index);
+  const selectedSentences=requestedSentences?.length
+   ? [...new Set(requestedSentences)].filter(index=>!!video.transcriptCues[index]).sort((left,right)=>left-right)
+   : video.transcriptCues.map((item,index)=>({item,index})).filter(({item})=>item.start<b&&item.end>a).map(({index})=>index);
+  const indexes=selectedSentences.length
+   ? [...new Set(selectedSentences.flatMap(index=>{const cue=video.transcriptCues[index];return Array.from({length:cue.lastIndex-cue.firstIndex+1},(_,offset)=>cue.firstIndex+offset);} ))].sort((left,right)=>left-right)
+   : video.cues.map((item,index)=>({item,index})).filter(({item})=>item.start<b&&item.end>a).map(({index})=>index);
   if(!indexes.length)return;
   if((selectedSentences.length||indexes.length)>100){toast.error('Choose up to 100 sentences per practice section.');return;}
   player.current?.pause();
